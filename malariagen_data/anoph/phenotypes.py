@@ -16,8 +16,13 @@ class AnophelesPhenotypeData:
     _url: str
     _fs: fsspec.AbstractFileSystem
     sample_metadata: Callable[..., pd.DataFrame]
-    sample_sets: list[str]
+    _base_path: str
+    _major_version_path: str
+    _release_to_path: Callable[[str], str]
+    lookup_release: Callable[..., str]
     _prep_sample_sets_param: Callable[..., Any]
+
+    sample_sets: Callable[..., pd.DataFrame]
     snp_calls: Callable[..., Any]
     haplotypes: Callable[..., Any]
 
@@ -32,11 +37,14 @@ class AnophelesPhenotypeData:
         Load raw phenotypic data from GCS for given sample sets.
         """
         phenotype_dfs = []
-        base_phenotype_path = f"{self._url}v3.2/phenotypes/all"
 
         for sample_set in sample_sets:
-            phenotype_path = f"{base_phenotype_path}/{sample_set}/phenotypes.csv"
             try:
+                release = self.lookup_release(sample_set=sample_set)
+                release_path = self._release_to_path(release)
+
+                phenotype_path = f"{self._base_path}/{release_path}/phenotypes/all/{sample_set}/phenotypes.csv"
+
                 if not self._fs.exists(phenotype_path):
                     warnings.warn(
                         f"Phenotype data file not found for {sample_set} at {phenotype_path}"
@@ -58,14 +66,9 @@ class AnophelesPhenotypeData:
                 df_pheno["sample_set"] = sample_set
                 phenotype_dfs.append(df_pheno)
 
-            except FileNotFoundError:
-                warnings.warn(
-                    f"Phenotype data file not found for {sample_set} at {phenotype_path}"
-                )
-                continue
             except Exception as e:
                 warnings.warn(
-                    f"Unexpected error loading phenotype data for {sample_set} from {phenotype_path}: {e}"
+                    f"Unexpected error loading phenotype data for {sample_set}: {e}"
                 )
                 continue
 
@@ -503,13 +506,16 @@ class AnophelesPhenotypeData:
         List[str]
             List of sample set identifiers with available phenotype data.
         """
-        all_sample_sets = self.sample_sets()["sample_set"].tolist()  # type: ignore[operator]
+        all_sample_sets = self.sample_sets()["sample_set"].tolist()
         phenotype_sample_sets = []
-        base_phenotype_path = f"{self._url}v3.2/phenotypes/all"
 
         for sample_set in all_sample_sets:
             try:
-                phenotype_path = f"{base_phenotype_path}/{sample_set}/phenotypes.csv"
+                release = self.lookup_release(sample_set=sample_set)
+                release_path = self._release_to_path(release)
+
+                phenotype_path = f"{self._base_path}/{release_path}/phenotypes/all/{sample_set}/phenotypes.csv"
+
                 if self._fs.exists(phenotype_path):
                     phenotype_sample_sets.append(sample_set)
             except Exception:
