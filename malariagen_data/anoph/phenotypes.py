@@ -1,8 +1,9 @@
 import pandas as pd
 import xarray as xr
-from typing import Callable, Optional, List, Any
+from typing import Callable, Optional, List, Any, TYPE_CHECKING
 import warnings
 import fsspec
+
 from malariagen_data.anoph import base_params, phenotype_params
 
 
@@ -12,19 +13,18 @@ class AnophelesPhenotypeData:
     Inherited by AnophelesDataResource subclasses (e.g., Ag3).
     """
 
-    # Type annotations for MyPy
-    _url: str
-    _fs: fsspec.AbstractFileSystem
-    sample_metadata: Callable[..., pd.DataFrame]
-    _base_path: str
-    _major_version_path: str
-    _release_to_path: Callable[[str], str]
-    lookup_release: Callable[..., str]
-    _prep_sample_sets_param: Callable[..., Any]
-
-    sample_sets: Callable[..., pd.DataFrame]
-    snp_calls: Callable[..., Any]
-    haplotypes: Callable[..., Any]
+    if TYPE_CHECKING:
+        _url: str
+        _fs: fsspec.AbstractFileSystem
+        _base_path: str
+        _major_version_path: str
+        _release_to_path: Callable[[str], str]
+        lookup_release: Callable[..., str]
+        _prep_sample_sets_param: Callable[..., Any]
+        sample_metadata: Callable[..., pd.DataFrame]
+        sample_sets: Callable[..., pd.DataFrame]
+        snp_calls: Callable[..., Any]
+        haplotypes: Callable[..., Any]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
